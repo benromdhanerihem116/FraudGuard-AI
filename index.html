@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FraudGuard | Enterprise Threat Intelligence</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #050505;
+            --panel-bg: #0f0f11;
+            --border: #27272a;
+            --accent: #6366f1; /* Indigo Primary */
+            --accent-glow: rgba(99, 102, 241, 0.2);
+            --danger: #ff3333;
+            --success: #00ff9d;
+            --text-main: #e4e4e7;
+            --text-muted: #71717a;
+            --font-ui: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-ui);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /*  SIDEBAR */
+        .sidebar {
+            width: 80px; /* Slim sidebar like professional tools */
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+            z-index: 100;
+        }
+        
+        .brand-icon { font-size: 1.8rem; color: var(--accent); margin-bottom: 40px; text-shadow: 0 0 15px var(--accent-glow); }
+        
+        .nav-item {
+            width: 50px; height: 50px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted); font-size: 1.2rem;
+            border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: 0.3s;
+        }
+        .nav-item:hover, .nav-item.active { background: var(--accent-glow); color: var(--accent); }
+
+        /*  MAIN LAYOUT */
+        .main-content {
+            flex: 1;
+            display: grid;
+            grid-template-rows: 80px 1fr 250px; /* Header / Map+Visu / Console */
+            grid-template-columns: 1fr 350px;   /* Left (Map) / Right (Controls) */
+            padding: 10px;
+            gap: 10px;
+        }
+
+        /*  HEADER STATS  */
+        .header-stats {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        .stat-card {
+            background: var(--panel-bg); border: 1px solid var(--border);
+            border-radius: 6px; padding: 15px; display: flex; flex-direction: column; justify-content: center;
+            position: relative; overflow: hidden;
+        }
+        .stat-card::before {
+            content:''; position: absolute; top:0; left:0; width: 4px; height: 100%; background: var(--accent);
+        }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-val { font-size: 1.6rem; font-family: var(--font-code); font-weight: 700; margin-top: 5px; }
+        .stat-trend { font-size: 0.8rem; margin-top: 4px; }
+
+        /*  MAP AREA  */
+        .map-container {
+            grid-column: 1 / 2;
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        #worldMap { width: 100%; height: 100%; background: #111; }
+        
+        /* Map Overlay Info */
+        .map-overlay {
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(0,0,0,0.8); border: 1px solid var(--border);
+            padding: 10px 20px; border-radius: 4px; z-index: 500;
+            font-family: var(--font-code); font-size: 0.8rem;
+            pointer-events: none;
+        }
+        .live-dot { display: inline-block; width: 8px; height: 8px; background: var(--danger); border-radius: 50%; animation: blink 1s infinite; margin-right: 8px;}
+
+        /*  CONTROL PANEL (RIGHT) */
+        .control-panel {
+            grid-column: 2 / 3;
+            grid-row: 2 / 4; /* Takes full height on right */
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex; flex-direction: column;
+            padding: 20px; gap: 20px;
+            overflow-y: auto;
+        }
+
+        h2 { font-size: 1rem; color: white; margin: 0 0 10px 0; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+
+        .input-group label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 5px; }
+        .input-group input, .input-group select {
+            width: 100%; background: #000; border: 1px solid var(--border); color: white;
+            padding: 10px; font-family: var(--font-code); font-size: 0.9rem; border-radius: 4px;
+        }
+        
+        /* Vector Visualization */
+        .vector-viz {
+            display: flex; gap: 2px; height: 60px; align-items: flex-end;
+            margin: 15px 0; border-bottom: 1px solid var(--border); padding-bottom: 5px;
+        }
+        .v-bar { flex: 1; background: var(--accent); transition: height 0.3s ease; opacity: 0.7; }
+        .v-bar:hover { opacity: 1; background: #fff; }
+
+        .scan-btn {
+            background: var(--accent); color: white; border: none; padding: 15px;
+            font-weight: 600; cursor: pointer; border-radius: 4px; letter-spacing: 1px;
+            transition: 0.2s; box-shadow: 0 0 15px var(--accent-glow);
+        }
+        .scan-btn:hover { transform: translateY(-2px); box-shadow: 0 0 25px var(--accent-glow); }
+        .scan-btn:disabled { background: #333; cursor: not-allowed; box-shadow: none; }
+
+        /* TERMINAL / LOGS (BOTTOM) */
+        .terminal-panel {
+            grid-column: 1 / 2;
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: var(--font-code);
+            font-size: 0.8rem;
+            padding: 10px;
+            overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+        .terminal-header { color: var(--text-muted); border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 5px; display: flex; justify-content: space-between;}
+        .logs-container { overflow-y: auto; flex: 1; display: flex; flex-direction: column-reverse; /* Newest at bottom */ }
+        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #111; padding: 2px 0; }
+        .log-ts { color: #555; margin-right: 10px; }
+        .log-info { color: #aaa; }
+        .log-success { color: var(--success); }
+        .log-danger { color: var(--danger); }
+        .log-json { color: var(--accent); font-size: 0.75rem; display: block; margin-left: 20px; opacity: 0.7; }
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="brand-icon"><i class="fa-solid fa-shield-halved"></i></div>
+        <div class="nav-item active"><i class="fa-solid fa-radar"></i></div>
+        <div class="nav-item"><i class="fa-solid fa-database"></i></div>
+        <div class="nav-item"><i class="fa-solid fa-network-wired"></i></div>
+        <div class="nav-item" style="margin-top:auto"><i class="fa-solid fa-gear"></i></div>
+    </div>
+
+    <div class="main-content">
+        
+        <div class="header-stats">
+            <div class="stat-card">
+                <span class="stat-label">Total Volume (24h)</span>
+                <span class="stat-val">$4,293,021</span>
+                <span class="stat-trend" style="color:var(--success)">▲ 12.5% vs avg</span>
+            </div>
+            <div class="stat-card" style="border-left-color: var(--danger);">
+                <span class="stat-label">Threats Blocked</span>
+                <span class="stat-val" id="blockedCount">142</span>
+                <span class="stat-trend" style="color:var(--danger)">● Critical Level</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Active Nodes</span>
+                <span class="stat-val">8,402</span>
+                <span class="stat-trend" style="color:var(--text-muted)">Global infrastructure</span>
+            </div>
+            <div class="stat-card" style="border-left-color: var(--success);">
+                <span class="stat-label">AI Latency</span>
+                <span class="stat-val">42ms</span>
+                <span class="stat-trend" style="color:var(--success)">● Real-time</span>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div class="map-overlay">
+                <span class="live-dot"></span> LIVE MONITORING PROTCOL: <b>ACTIVE</b><br>
+                <span style="color:#777">Connection: Secure (TLS 1.3)</span>
+            </div>
+            <div id="worldMap"></div>
+        </div>
+
+        <div class="control-panel">
+            <h2><i class="fa-solid fa-sliders"></i> SIMULATION CONTROL</h2>
+            
+            <div class="input-group">
+                <label>THREAT SCENARIO</label>
+                <select id="scenario" onchange="loadScenario()">
+                    <option value="legit">🟢 Normal: Coffee Shop (Paris)</option>
+                    <option value="fraud_cn">🔴 Attack: Botnet (Beijing)</option>
+                    <option value="fraud_ru">🔴 Attack: Credential Stuffing (Moscow)</option>
+                    <option value="fraud_ng">🔴 Attack: Phishing (Lagos)</option>
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="input-group">
+                    <label>IP ADDRESS (SPOOFED)</label>
+                    <input type="text" id="ip_addr" value="192.168.1.1" readonly style="color: #777; border-style:dashed;">
+                </div>
+                <div class="input-group">
+                    <label>DEVICE ID</label>
+                    <input type="text" id="device_id" value="iPhone 14,2" readonly style="color: #777; border-style:dashed;">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>TIME DELAY (Seconds since last login)</label>
+                <input type="number" id="time" value="300">
+            </div>
+
+            <div class="input-group">
+                <label>TRANSACTION AMOUNT ($)</label>
+                <input type="number" id="amount" value="12.50">
+            </div>
+
+            <div class="input-group">
+                <label>AI INPUT VECTORS (V1 - V28)</label>
+                <div class="vector-viz" id="vectorBars">
+                    </div>
+            </div>
+
+            <button class="scan-btn" onclick="executeAnalysis()">
+                <i class="fa-solid fa-microchip"></i> EXECUTE NEURAL ANALYSIS
+            </button>
+
+            <div id="resultStatus" style="text-align: center; font-family: var(--font-code); min-height: 40px; display:flex; align-items:center; justify-content:center;">
+                <span style="color:#555">READY FOR INPUT...</span>
+            </div>
+        </div>
+
+        <div class="terminal-panel">
+            <div class="terminal-header">
+                <span><i class="fa-solid fa-terminal"></i> SYSTEM LOGS (JSON STREAM)</span>
+                <span>/var/log/fraudguard/sys.log</span>
+            </div>
+            <div class="logs-container" id="sysLogs">
+                </div>
+        </div>
+
+    </div>
+
+    <script>
+        //  1. CONFIGURATION & INIT 
+        const map = L.map('worldMap', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView([20, 0], 2);
+
+        // Dark Matter Map Theme
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19
+        }).addTo(map);
+
+        //  2. DATA GENERATION 
+        // Generates fake V1-V28 vectors to show the "Math" behind the AI
+        function generateVectors(isFraud) {
+            const container = document.getElementById('vectorBars');
+            container.innerHTML = '';
+            let vectorArray = [];
+            
+            for(let i=0; i<28; i++) {
+                let val = isFraud ? (Math.random() * 2 - 1) : (Math.random() * 0.4 - 0.2); 
+                vectorArray.push(val);
+                
+                let bar = document.createElement('div');
+                bar.className = 'v-bar';
+                let heightPct = Math.abs(val) * 100; // Visual height
+                if(heightPct > 100) heightPct = 100;
+                bar.style.height = heightPct + '%';
+                // Colorize outliers
+                if(Math.abs(val) > 0.8) bar.style.background = '#ff3333';
+                container.appendChild(bar);
+            }
+            return vectorArray;
+        }
+
+        const scenarios = {
+            'legit': { city: 'Paris', lat: 48.8566, lng: 2.3522, time: 300, amount: 12.50, ip: '82.12.90.11', dev: 'iPhone 13' },
+            'fraud_cn': { city: 'Beijing', lat: 39.9042, lng: 116.4074, time: 2, amount: 5400.00, ip: '112.90.88.21', dev: 'Headless Chrome' },
+            'fraud_ru': { city: 'Moscow', lat: 55.7558, lng: 37.6173, time: 10, amount: 2500.00, ip: '95.12.33.1', dev: 'Unknown Android' },
+            'fraud_ng': { city: 'Lagos', lat: 6.5244, lng: 3.3792, time: 45, amount: 1000.00, ip: '197.210.8.2', dev: 'Windows XP' }
+        };
+
+        let currentScenario = scenarios['legit'];
+
+        function loadScenario() {
+            const key = document.getElementById('scenario').value;
+            currentScenario = scenarios[key];
+            
+            // Update UI Fields
+            document.getElementById('time').value = currentScenario.time;
+            document.getElementById('amount').value = currentScenario.amount;
+            document.getElementById('ip_addr').value = currentScenario.ip;
+            document.getElementById('device_id').value = currentScenario.dev;
+
+            // Generate visuals based on scenario type (Fraud keys start with 'fraud')
+            generateVectors(key.startsWith('fraud'));
+
+            // Map Movement
+            map.flyTo([currentScenario.lat, currentScenario.lng], 4, { duration: 1.5 });
+        }
+
+        //  3. EXECUTION LOGIC
+        async function executeAnalysis() {
+            const btn = document.querySelector('.scan-btn');
+            const statusDiv = document.getElementById('resultStatus');
+            const amount = parseFloat(document.getElementById('amount').value);
+            const time = parseFloat(document.getElementById('time').value);
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> PROCESSING...';
+            statusDiv.innerHTML = '<span style="color:#aaa">Encrypting Payload & Sending to Neural Net...</span>';
+
+            // 1. Generate the MATH (The "Features")
+            // Note: In real life these come from the dataset. Here we simulate the vectors based on the user's choice to verify the python model works.
+            // If amount is huge and time is low => we generate "bad" vectors
+            let isRisky = (amount > 1000 || time < 20);
+            let simulatedFeatures = generateVectors(isRisky);
+
+            const payload = {
+                time: time,
+                amount: amount,
+                features: simulatedFeatures // Sending the array of 28 floats
+            };
+
+            logSystem(`OUTGOING >> Payload: ${JSON.stringify(payload).substring(0, 60)}...`);
+
+            try {
+                // CALL PYTHON
+                const response = await fetch('http://127.0.0.1:5000/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                // VISUALIZE RESULT
+                const isBlock = data.status === 'BLOCKED';
+                
+                // Map Marker
+                const color = isBlock ? '#ff3333' : '#00ff9d';
+                L.circleMarker([currentScenario.lat, currentScenario.lng], {
+                    radius: 15, color: color, fillColor: color, fillOpacity: 0.4
+                }).addTo(map).bindPopup(`<b>${data.status}</b><br>Confidence: ${(data.probability*100).toFixed(4)}%`).openPopup();
+
+                // Status Text
+                statusDiv.innerHTML = isBlock 
+                    ? `<div style="color:var(--danger); border:1px solid var(--danger); padding:5px 15px; border-radius:4px; background:rgba(255,50,50,0.1)">⛔ THREAT BLOCKED (${(data.probability*100).toFixed(2)}%)</div>`
+                    : `<div style="color:var(--success); border:1px solid var(--success); padding:5px 15px; border-radius:4px; background:rgba(0,255,150,0.1)">✅ TRANSACTION CLEARED</div>`;
+
+                // Log Entry
+                logSystem(`INCOMING << Status: ${data.status} | Score: ${data.probability}`, isBlock ? 'danger' : 'success');
+
+                if(isBlock) {
+                    let count = document.getElementById('blockedCount');
+                    count.innerText = parseInt(count.innerText) + 1;
+                }
+
+            } catch (err) {
+                console.error(err);
+                statusDiv.innerHTML = `<span style="color:red">CONNECTION ERROR: Python Backend Offline?</span>`;
+                logSystem(`ERROR: Connection refused on port 5000`, 'danger');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-microchip"></i> EXECUTE NEURAL ANALYSIS';
+        }
+
+        function logSystem(msg, type='info') {
+            const container = document.getElementById('sysLogs');
+            const row = document.createElement('div');
+            row.className = 'log-entry';
+            
+            const ts = new Date().toISOString().split('T')[1].slice(0, -1);
+            let colorClass = type === 'danger' ? 'log-danger' : (type === 'success' ? 'log-success' : 'log-info');
+            
+            row.innerHTML = `<span class="log-ts">[${ts}]</span> <span class="${colorClass}">${msg}</span>`;
+            container.insertBefore(row, container.firstChild);
+        }
+
+        // Init
+        generateVectors(false); // Draw initial blue bars
+        logSystem("System initialized. FraudGuard AI loaded. Waiting for stream...", "success");
+
+    </script>
+</body>
+</html>

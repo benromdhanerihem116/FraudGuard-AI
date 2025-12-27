@@ -1,0 +1,22 @@
+# Core Data Science & Math
+numpy
+pandas
+joblib
+
+# Visualization
+matplotlib
+seaborn
+
+# Machine Learning & Deep Learning
+scikit-learn
+tensorflow
+
+# Backend API & Server
+Flask
+Flask-CORS
+
+# Testing
+requests
+
+# Development Environment
+jupyter
