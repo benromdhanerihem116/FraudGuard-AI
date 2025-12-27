@@ -98,21 +98,21 @@ The system is built on a Hybrid Deep Learning Architecture that separates the tr
 This phase describes how raw data is transformed into a production-ready model. We utilize a "Defense in Depth" strategy by chaining an Unsupervised Autoencoder with a Supervised Dense Classifier.
 ```mermaid
 graph TD
-    subgraph Data_Prep [1. Data Preparation]
+    subgraph Data_Prep ["1. Data Preparation"]
         A[("Raw Data (CSV)")] --> B{Train/Test Split}
         B -->|Train Set| C[Fit RobustScaler]
         B -->|Test Set| D[Apply Transform]
         C -->|Scaled Inputs| E[Feature Separation]
     end
 
-    subgraph Layer_1 [2. The Filter (Unsupervised)]
+    subgraph Layer_1 ["2. The Filter (Unsupervised)"]
         E --> F["Deep Autoencoder Model"]
         F -->|Learn Normality| G{Reconstruction Check}
         G -->|Output 1| H["Reconstruction Error (MSE)"]
         G -->|Output 2| I["Latent Features (Compressed)"]
     end
 
-    subgraph Layer_2 [3. The Judge (Supervised)]
+    subgraph Layer_2 ["3. The Judge (Supervised)"]
         H & I --> J[Feature Concatenation]
         J --> K["Dense Neural Network"]
         K --> L((Final Probability))
@@ -175,7 +175,7 @@ sequenceDiagram
     
     User->>User: Update UI (Red Marker/Alert)
 ```
----
+
 #### Data Flow Specification:
 * **The Trigger (Frontend):** The user selects a scenario in index.html. JavaScript constructs a payload representing a single transaction vector.
 
@@ -192,7 +192,7 @@ sequenceDiagram
 * Step D: The Classifier outputs a float between 0 (Safe) and 1 (Fraud).
 
 * **The Response:** The API returns a structured JSON containing the decision, the raw probability for the analyst, and the specific anomaly score.
-
+---
 ##  Performance & Results: 
 The system's effectiveness is demonstrated by the significant performance jump between the standalone Autoencoder and the final Hybrid Classifier. The Hybrid Strategy proved superior in balancing the trade-off between catching fraud and annoying users with false alarms.
 ### Phase 1: The Autoencoder (Baseline)
@@ -335,6 +335,17 @@ The dataset (`creditcard.csv`) used in this project is too large to be hosted di
     jupyter notebook FraudDetection.ipynb
     ```
     Run All Cells. This will create the .h5 and .pkl files required by the backend
+
+    
+    ⚠️ **IMPORTANT NOTE ON EXECUTION:**
+    The notebook may contain a cell that loads data from a local **absolute path** (e.g., `C:\\Users\\USER\\...`). Before running the data loading cells, please **verify the file path**:
+    
+    1.  Locate the line: `df = pd.read_csv('...')`
+    2.  Ensure it points to just `'creditcard.csv'` (relative path) so it works on your machine.
+    
+    Follow the remaining cells for Preprocessing, Autoencoder Training, and Hybrid Model Evaluation.
+
+
 5.  **Start the Backend API:**
     Open your terminal/command prompt in the project folder and run:
     ```bash
@@ -350,19 +361,6 @@ The dataset (`creditcard.csv`) used in this project is too large to be hosted di
     * Click "EXECUTE NEURAL ANALYSIS".
 
     * Watch the AI block or approve the transaction in real-time.
-
-
-
-
-    ⚠️ **IMPORTANT NOTE ON EXECUTION:**
-    The notebook may contain a cell that loads data from a local **absolute path** (e.g., `C:\\Users\\USER\\...`). Before running the data loading cells, please **verify the file path**:
-    
-    1.  Locate the line: `df = pd.read_csv('...')`
-    2.  Ensure it points to just `'creditcard.csv'` (relative path) so it works on your machine.
-    
-    Follow the remaining cells for Preprocessing, Autoencoder Training, and Hybrid Model Evaluation.
-
-
 
 ---
 
