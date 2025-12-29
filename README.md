@@ -1,8 +1,26 @@
 # FraudGuard AI: Real-Time Threat Intelligence with Hybrid Fraud Detection System
-![Python](https://img.shields.io/badge/Python-3.11.9%2B-blue?style=for-the-badge&logo=python)
-![Status](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
-![Domain](https://img.shields.io/badge/Domain-FinTech%20Security-orange?style=for-the-badge)
+
+![Version](https://img.shields.io/badge/Version-2.0.0-blue?style=for-the-badge)
+![Build Status](https://img.shields.io/badge/Build-Production%20Ready-success?style=for-the-badge&logo=github-actions)
+![License](https://img.shields.io/badge/License-Non--Commercial-lightgrey?style=for-the-badge)
+![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg?style=for-the-badge)
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Core-Python%203.11.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/AI%20Engine-TensorFlow%20%2F%20Keras-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white" alt="TensorFlow">
+  <img src="https://img.shields.io/badge/ML-Scikit--Learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white" alt="Sklearn">
+  <img src="https://img.shields.io/badge/Backend-Flask%20REST%20API-000000?style=for-the-badge&logo=flask&logoColor=white" alt="Flask">
+  <img src="https://img.shields.io/badge/Frontend-Vanilla%20JS%20%2F%20HTML5-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="Javascript">
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Domain-FinTech%20Security-00C7B7?style=for-the-badge&logo=security" alt="Domain">
+  <img src="https://img.shields.io/badge/Technique-Semi--Supervised%20Hybrid-purple?style=for-the-badge" alt="Technique">
+  <img src="https://img.shields.io/badge/Fraud%20Recall-84%25-red?style=for-the-badge" alt="Performance">
+  <img src="https://img.shields.io/badge/Accuracy-99.8%25-success?style=for-the-badge" alt="Accuracy">
+</p>
+
+</div>
 
 ---
 
